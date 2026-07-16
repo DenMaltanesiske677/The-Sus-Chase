@@ -13,4 +13,4 @@ Install Guide Windows
 2:Zip The File Up And Go To The Folder
 3:Open The TheSusChase-Release-1.0.html
 
-Im A Kid And Knows Not Anything About Malware Or Viruses
+Im A Kid And Knows Not Anything About Malware Or Viruses 
