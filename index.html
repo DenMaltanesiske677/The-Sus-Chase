@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <link rel="stylesheet" href="style.css">
+  <title>The Sus Chase</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "nipplejs": "https://esm.sh/nipplejs@0.9.0"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div id="info">
+      <div id="status">Alive</div>
+      <div id="timer">00:00</div>
+    </div>
+    <div id="controls-hint">WASD / Keyboard or Joystick</div>
+  </div>
+
+  <!-- Start Menu -->
+  <div id="menu" class="menu-overlay">
+    <div class="menu-panel">
+      <h2>The Sus Chase</h2>
+      <div class="colors" id="colors"></div>
+      <button id="startBtn" class="primary">Play</button>
+    </div>
+  </div>
+
+  <!-- Death Panel (shown on being caught) -->
+  <div id="deathPanel" class="menu-overlay" style="display:none;">
+    <div class="menu-panel">
+      <h2>You Died Lol</h2>
+      <div style="margin:8px 0 6px;color:rgba(255,255,255,0.75);font-size:13px;">Choose a color and try again</div>
+      <div class="colors" id="deathColors"></div>
+      <button id="playAgainBtn" class="primary" style="margin-top:10px;">Play Again</button>
+    </div>
+  </div>
+
+  <div id="joystick"></div>
+  <button id="action" aria-label="Action" class="mobile-action">A</button>
+
+  <!-- Menu music (plays while menu is visible) -->
+  <audio id="menuMusic" src="https://nu.vgmtreasurechest.com/soundtracks/among-us/nzispxqm/01.%20Among%20Us%20Theme.mp3" preload="auto"></audio>
+  <!-- Gameplay music (low volume) -->
+  <audio id="gameMusic" src="among-us-trap-remix-among-drip-t.mp3" preload="auto"></audio>
+  <!-- Imposter win sound -->
+  <audio id="impostorWin" src="impostor-win.mp3" preload="auto"></audio>
+
+  <!-- Crewmate win sound -->
+  <audio id="crewmateWin" src="yay_cRiHGGR.mp3" preload="auto"></audio>
+
+  <!-- Win Panel (shown when all tasks completed) -->
+  <div id="winPanel" class="menu-overlay" style="display:none;">
+    <div class="menu-panel">
+      <h2>You Completed All Tasks — You Win! Lmao Try Again</h2>
+      <div style="margin:8px 0 6px;color:rgba(255,255,255,0.75);font-size:13px;">Nice job — choose a color and play again</div>
+      <div class="colors" id="winColors"></div>
+      <button id="winPlayAgainBtn" class="primary" style="margin-top:10px;">Play Again</button>
+    </div>
+  </div>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>

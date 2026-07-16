@@ -1,0 +1,734 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Among-lite (Offline)</title>
+<style><<<<<<< SEARCH
+:root{
+  --bg:#0f1720;
+  --panel:#0b1220;
+  --accent:#ef4444;
+  --muted:#9aa6b2;
+}
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--bg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  touch-action: none;
+}
+canvas{
+  width:360px; /* mobile-friendly */
+  height:640px;
+  border-radius:12px;
+  box-shadow:0 8px 30px rgba(2,6,23,0.8);
+  background:linear-gradient(180deg,#071020 0%, #071a2a 100%);
+  display:block;
+}
+
+/* Controls overlay */
+#controls{
+  position:fixed;
+  left:12px;
+  bottom:12px;
+  width:336px;
+  height:120px;
+  pointer-events:none;
+}
+#left-stick{
+  position:absolute;
+  left:0;
+  bottom:0;
+  width:120px;
+  height:120px;
+  pointer-events:auto;
+}
+#buttons{
+  position:absolute;
+  right:0;
+  bottom:0;
+  width:120px;
+  height:120px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+}
+#action{
+  pointer-events:auto;
+  width:64px;
+  height:64px;
+  border-radius:50%;
+  border:0;
+  background:var(--accent);
+  color:white;
+  font-weight:700;
+  font-size:18px;
+  box-shadow:0 6px 18px rgba(239,68,68,0.25);
+  -webkit-user-select:none;
+}
+#action:active{ transform:translateY(2px); }
+=======
+:root{
+  --bg:#0f1720;
+  --panel:#0b1220;
+  --accent:#ef4444;
+  --muted:#9aa6b2;
+}
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--bg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  touch-action: none;
+}
+canvas{
+  width:360px; /* mobile-friendly */
+  height:640px;
+  border-radius:12px;
+  box-shadow:0 8px 30px rgba(2,6,23,0.8);
+  background:linear-gradient(180deg,#071020 0%, #071a2a 100%);
+  display:block;
+}
+
+/* Controls overlay */
+#controls{
+  position:fixed;
+  left:12px; /* place controls in bottom-left corner */
+  bottom:12px;
+  width:140px;
+  height:120px;
+  pointer-events:none;
+  display:flex;
+  align-items:flex-end;
+  justify-content:flex-start;
+}
+#left-stick{
+  position:absolute;
+  left:12px;
+  bottom:12px;
+  width:90px; /* smaller joystick */
+  height:90px;
+  pointer-events:auto;
+}
+#buttons{
+  position:relative;
+  width:120px;
+  height:120px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+}
+#action{
+  pointer-events:auto;
+  width:64px;
+  height:64px;
+  border-radius:50%;
+  border:0;
+  background:#00d1d1; /* cyan as requested */
+  color:white;
+  font-weight:700;
+  font-size:18px;
+  box-shadow:0 6px 18px rgba(0,209,209,0.22);
+  -webkit-user-select:none;
+  /* move action button to the right side of the screen opposite the joystick by using a fixed offset */
+  position:fixed;
+  right:12px;
+  bottom:24px;
+}
+#action:active{ transform:translateY(2px); }
+
+/* Menu overlays */
+.overlay{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:auto;
+}
+.overlay .panel{
+  width:320px;
+  max-width:90%;
+  background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.25));
+  border-radius:12px;
+  padding:18px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.6);
+  color:#e6eef6;
+  text-align:center;
+  backdrop-filter: blur(6px);
+}
+.overlay.hidden{ display:none; }
+.panel h2{ margin:6px 0 12px; font-size:18px; color:#fff; }
+.primary{
+  margin-top:12px;
+  padding:10px 14px;
+  border-radius:8px;
+  border:0;
+  background:var(--accent);
+  color:white;
+  font-weight:700;
+}
+.colors{
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+.color-pill{
+  width:44px;
+  height:44px;
+  border-radius:8px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.35);
+  border:2px solid rgba(255,255,255,0.06);
+  cursor:pointer;
+}
+.color-pill.selected{ outline:3px solid rgba(255,255,255,0.06); transform:scale(1.06); }
+
+/* top bar (download link) */
+.top-bar{ display:flex; justify-content:flex-end; margin-bottom:6px; }
+.download{
+  font-size:12px;
+  color:rgba(255,255,255,0.95);
+  background:rgba(0,0,0,0.18);
+  padding:6px 8px;
+  border-radius:8px;
+  text-decoration:none;
+  border:1px solid rgba(255,255,255,0.04);
+}
+
+/* mode buttons */
+.mode-buttons{ display:flex; gap:8px; justify-content:center; margin-top:10px; }
+.mode{
+  padding:8px 10px;
+  border-radius:8px;
+  border:0;
+  background:rgba(255,255,255,0.06);
+  color:#e6eef6;
+  font-weight:700;
+  cursor:pointer;
+}
+.mode.active{ background:#00d1d1; color:#002; box-shadow:0 8px 18px rgba(0,209,209,0.12); }
+</style>
+</head>
+<body>
+<canvas id="game" width="360" height="640" style="width:360px;height:640px;border-radius:12px;"></canvas>
+<script type="module">
+/* Inlined game.js */
+export class Game {
+  constructor(canvas, ctx){
+    this.canvas = canvas;
+    this.ctx = ctx;
+    // world coordinates scale to canvas size
+    this.w = canvas.width;
+    this.h = canvas.height;
+    this.player = { x: this.w/2, y: this.h*0.8, r: 18, color:"#48b0ff", speed: 180, alive:true };
+    this.impostor = { x: this.w/2, y: this.h*0.2, r: 20, color:"#ff6b6b", speed: 80, dir: Math.PI/2 };
+    this.tasks = this._generateTasks(4);
+    this.completed = 0;
+    this.state = "playing"; // playing, win, lose
+    this.flash = 0;
+  }
+
+  start(){
+    // nothing for now
+  }
+
+  _generateTasks(n){
+    const tasks = [];
+    for(let i=0;i<n;i++){
+      const margin = 40;
+      const x = margin + Math.random()*(this.w - margin*2);
+      const y = margin + Math.random()*(this.h - margin*2);
+      // each task requires holding action for 2 seconds to complete
+      tasks.push({x,y,r:10,done:false,progress:0,needs:2});
+    }
+    return tasks;
+  }
+
+  update(dt, vx, vy, action){
+    if (this.state !== "playing") {
+      // quick restart on action
+      if (action) this._reset();
+      return;
+    }
+
+    // normalize input
+    let len = Math.hypot(vx, vy);
+    if (len > 1) { vx/=len; vy/=len; }
+
+    // move player
+    this.player.x += vx * this.player.speed * dt;
+    this.player.y += vy * this.player.speed * dt;
+    // clamp
+    this.player.x = Math.max(this.player.r, Math.min(this.w - this.player.r, this.player.x));
+    this.player.y = Math.max(this.player.r, Math.min(this.h - this.player.r, this.player.y));
+
+    // interact / complete tasks: hold for required seconds (uses dt)
+    if (action) {
+      for (const t of this.tasks) {
+        if (!t.done && this._circleDist(this.player, t) < this.player.r + t.r + 6) {
+          t.progress = (t.progress || 0) + dt;
+          // clamp
+          if (t.progress > t.needs) t.progress = t.needs;
+          if (t.progress >= t.needs) {
+            t.done = true;
+            this.completed++;
+            this.flash = 0.3;
+            t.progress = t.needs;
+          }
+          break;
+        }
+      }
+    } else {
+      // if player releases before completion, slowly decay progress for UX
+      for (const t of this.tasks) {
+        if (!t.done && t.progress) {
+          t.progress = Math.max(0, t.progress - dt*1.2);
+        }
+      }
+    }
+
+    // impostor simple AI: seeks player with some wandering
+    const ax = this.player.x - this.impostor.x;
+    const ay = this.player.y - this.impostor.y;
+    const dist = Math.hypot(ax, ay);
+    // rotate direction slightly toward player
+    const target = Math.atan2(ay, ax);
+    const cur = this.impostor.dir;
+    let diff = target - cur;
+    // normalize diff
+    while (diff<-Math.PI) diff += 2*Math.PI;
+    while (diff>Math.PI) diff -= 2*Math.PI;
+    this.impostor.dir += diff * 0.03; // turning speed
+
+    // sometimes random jitter
+    this.impostor.dir += (Math.random()-0.5)*0.02;
+
+    // move
+    const speed = this.impostor.speed * (1 + Math.max(0, (200 - dist)/400)); // chase faster when close
+    this.impostor.x += Math.cos(this.impostor.dir) * speed * dt;
+    this.impostor.y += Math.sin(this.impostor.dir) * speed * dt;
+
+    // clamp impostor
+    this.impostor.x = Math.max(this.impostor.r, Math.min(this.w - this.impostor.r, this.impostor.x));
+    this.impostor.y = Math.max(this.impostor.r, Math.min(this.h - this.impostor.r, this.impostor.y));
+
+    // collision check
+    if (this._circleDist(this.player, this.impostor) < this.player.r + this.impostor.r - 4) {
+      this.state = "lose";
+    }
+
+    // win condition
+    if (this.completed >= this.tasks.length) this.state = "win";
+
+    // flash timer
+    if (this.flash > 0) this.flash = Math.max(0, this.flash - dt);
+  }
+
+  render(){
+    const ctx = this.ctx;
+    // background
+    ctx.fillStyle = "#071020";
+    ctx.fillRect(0,0,this.w,this.h);
+
+    // room floor grid
+    this._drawGrid(ctx);
+
+    // tasks
+    for (const t of this.tasks) {
+      ctx.beginPath();
+      ctx.fillStyle = t.done ? "#22c55e" : "#ffd166";
+      ctx.globalAlpha = t.done ? 0.8 : 0.95;
+      ctx.arc(t.x, t.y, t.r, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // draw progress for tasks being held
+      if (!t.done && t.progress) {
+        const pct = Math.min(1, t.progress / (t.needs || 2));
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(255,255,255,0.9)";
+        ctx.lineWidth = 3;
+        ctx.arc(t.x, t.y, t.r + 8, -Math.PI/2, -Math.PI/2 + Math.PI*2*pct);
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.font = "12px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`${Math.ceil((t.needs - t.progress)*10)/10}s`, t.x, t.y+4);
+      }
+    }
+
+    // impostor (draw behind player sometimes)
+    this._drawCrew(ctx, this.impostor, true);
+
+    // player
+    this._drawCrew(ctx, this.player, false);
+
+    // UI: tasks remaining
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.font = "14px system-ui, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(`Tasks: ${this.tasks.filter(t=>!t.done).length}`, 10, 20);
+
+    // state overlay
+    if (this.state !== "playing") {
+      ctx.fillStyle = this.state === "win" ? "rgba(34,197,94,0.95)" : "rgba(239,68,68,0.95)";
+      ctx.fillRect(0, this.h/2 - 60, this.w, 120);
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.font = "22px system-ui, sans-serif";
+      ctx.fillText(this.state === "win" ? "All Tasks Done — You Win!" : "You were caught — You Lose", this.w/2, this.h/2 - 6);
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.fillText("Tap action or Press Space to restart", this.w/2, this.h/2 + 20);
+    }
+
+    // flash effect when completing task
+    if (this.flash > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${this.flash})`;
+      ctx.fillRect(0,0,this.w,this.h);
+    }
+  }
+
+  _drawGrid(ctx){
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.02)";
+    ctx.lineWidth = 1;
+    const step = 40;
+    for(let x=0;x<=this.w;x+=step){
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,this.h); ctx.stroke();
+    }
+    for(let y=0;y<=this.h;y+=step){
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(this.w,y); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  _drawCrew(ctx, ent, drawEyes){
+    // body shadow
+    ctx.beginPath();
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.ellipse(ent.x+6, ent.y+ent.r+8, ent.r*1.1, ent.r*0.45, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // body
+    ctx.beginPath();
+    ctx.fillStyle = ent.color;
+    ctx.ellipse(ent.x, ent.y, ent.r, ent.r*1.2, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // backpack
+    ctx.beginPath();
+    ctx.fillStyle = this._darken(ent.color, -10);
+    ctx.ellipse(ent.x - ent.r*0.9, ent.y - 2, ent.r*0.55, ent.r*0.9, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // visor
+    ctx.beginPath();
+    ctx.fillStyle = "#cfefff";
+    ctx.ellipse(ent.x + ent.r*0.28, ent.y - ent.r*0.1, ent.r*0.6, ent.r*0.35, -0.3, 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    ctx.ellipse(ent.x + ent.r*0.45, ent.y - ent.r*0.15, ent.r*0.25, ent.r*0.12, -0.3, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  _darken(hex, amount){
+    // amount -100..100
+    const c = hex.replace('#','');
+    const num = parseInt(c,16);
+    let r = (num>>16) + amount;
+    let g = ((num>>8)&0x00FF) + amount;
+    let b = (num & 0x0000FF) + amount;
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  _circleDist(a,b){
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.hypot(dx,dy);
+  }
+
+  _reset(){
+    this.player.x = this.w/2; this.player.y = this.h*0.8; this.player.alive = true;
+    this.impostor.x = this.w/2; this.impostor.y = this.h*0.2;
+    this.tasks = this._generateTasks(4);
+    this.completed = 0;
+    this.state = "playing";
+  }
+}
+
+/* Inlined main.js */
+
+/* Inlined offline bundle - loads nipple dynamically then executes original main.js */
+const nipple = (await import('https://esm.sh/nipplejs@0.9.0')).default;
+import nipple from "nipplejs";
+import { Game } from "./game.js";
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d", { alpha: false });
+canvas.width = 360;
+canvas.height = 640;
+
+const menuEl = document.getElementById("menu");
+const colorsEl = document.getElementById("colors");
+const startBtn = document.getElementById("startBtn");
+const endPanel = document.getElementById("endPanel");
+const endTitle = document.getElementById("endTitle");
+const tryAgainBtn = document.getElementById("tryAgain");
+
+const game = new Game(canvas, ctx);
+game.start();
+
+// available player colors
+const COLORS = ["#48b0ff","#00bcd4","#0f9d58","#ffb86b","#6ee7b7","#f472b6","#ffd166","#a78bfa"];
+let selectedColor = COLORS[0];
+
+// populate color chooser
+for (const c of COLORS) {
+  const d = document.createElement("div");
+  d.className = "color-pill" + (c===selectedColor ? " selected" : "");
+  d.style.background = c;
+  d.setAttribute("role","button");
+  d.addEventListener("click", () => {
+    selectedColor = c;
+    // update UI selection
+    for (const kid of colorsEl.children) kid.classList.remove("selected");
+    d.classList.add("selected");
+  });
+  colorsEl.appendChild(d);
+}
+
+ // Start button behaviour: apply color, hide menu, start game loop updates
+let running = false;
+startBtn.textContent = "Play";
+
+ // fixed mode: player chases crewmate only
+ let mode = "chase";
+
+// Download button: bundle basic files into a single self-contained HTML for offline play
+const downloadBtn = document.getElementById("downloadBtn");
+downloadBtn.addEventListener("click", async () => {
+  // fetch necessary files
+  const [styleText, mainText, gameText] = await Promise.all([
+    (await fetch('style.css')).text(),
+    (await fetch('main.js')).text(),
+    (await fetch('game.js')).text()
+  ]);
+
+  // remove the top-level ESM import of nipple from main.js and replace with a top-level await dynamic import
+  // so the inlined module can still obtain nipple when run offline.
+  const mainWithoutImport = mainText.replace(/import\\s+nipple.*?;\\n/, '');
+
+  // Build a module script that first loads nipple via dynamic import then runs the original main.js code.
+  const moduleScript = `
+/* Inlined offline bundle - loads nipple dynamically then executes original main.js */
+const nipple = (await import('https://esm.sh/nipplejs@0.9.0')).default;
+${mainWithoutImport}
+`;
+
+  const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Among-lite (Offline)</title>
+<style>${styleText}</style>
+</head>
+<body>
+<canvas id="game" width="360" height="640" style="width:360px;height:640px;border-radius:12px;"></canvas>
+<script type="module">
+/* Inlined game.js */
+${gameText}
+
+/* Inlined main.js */
+${moduleScript}
+</script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'among-lite-offline.html';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+// Start behaviour: apply chosen color and selected mode, hide menu
+startBtn.addEventListener("click", () => {
+  // apply chosen color to player
+  game.player.color = selectedColor;
+
+  // apply mode tweaks
+  if (mode === "be-chased") {
+    // default: faster player, slower impostor
+    game.player.speed = 200;
+    game.impostor.speed = 70;
+  } else {
+    // player chases: make player a bit faster and impostor behave like a slow crewmate (we'll reduce impostor speed and invert behavior lightly)
+    game.player.speed = 220;
+    game.impostor.speed = 40;
+    // slightly bias impostor direction to wander so player chases
+    game.impostor.dir = Math.random()*Math.PI*2;
+  }
+
+  menuEl.classList.add("hidden");
+  endPanel.classList.add("hidden");
+  running = true;
+});
+
+// Try Again: reset game and show main menu to pick color
+tryAgainBtn.addEventListener("click", () => {
+  game._reset();
+  endPanel.classList.add("hidden");
+  menuEl.classList.remove("hidden");
+  running = false;
+});
+
+ // Setup nipple.js joystick for mobile and fallback pointer events for desktop
+const leftEl = document.getElementById("left-stick");
+const manager = nipple.create({ zone: leftEl, mode: "static", position: { left: "46px", top: "46px" }, color: "#9aa6b2", size: 90 });
+
+let stick = { x:0, y:0, active:false };
+
+manager.on("move", (evt, data) => {
+  if (!data) return;
+  const angle = data.angle ? data.angle.radian : 0;
+  const force = Math.min(data.distance/50, 1);
+  // nipplejs angle is clockwise; vertical must be inverted so up on stick -> negative canvas Y
+  stick.x = Math.cos(angle) * force;
+  stick.y = -Math.sin(angle) * force; // inverted Y for natural up/down
+  stick.active = true;
+});
+manager.on("end", () => { stick.x=0; stick.y=0; stick.active=false; });
+
+// Desktop keyboard
+const keys = {};
+window.addEventListener("keydown", e => { keys[e.key.toLowerCase()] = true; });
+window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+
+// Touch-to-move: touching the canvas moves toward touch point (mobile simpler control)
+let touchPointer = { active:false, x:0, y:0 };
+canvas.addEventListener("touchstart", (e) => {
+  const t = e.touches[0];
+  touchPointer.active = true;
+  const rect = canvas.getBoundingClientRect();
+  touchPointer.x = (t.clientX - rect.left) * (canvas.width / rect.width);
+  touchPointer.y = (t.clientY - rect.top) * (canvas.height / rect.height);
+  // if touch is near left/bottom area where joystick sits or near the right-bottom action button, don't treat as move
+  const leftDx = (t.clientX - (rect.left + 60)); // joystick center approx
+  const leftDy = (t.clientY - (rect.top + rect.height - 46));
+  const rightDx = t.clientX - (rect.left + rect.width - 46); // action button approx
+  const rightDy = t.clientY - (rect.top + rect.height - 46);
+  if (Math.hypot(leftDx,leftDy) < 60 || Math.hypot(rightDx,rightDy) < 60) {
+    touchPointer.active = false;
+  }
+});
+canvas.addEventListener("touchmove", (e) => {
+  const t = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  touchPointer.x = (t.clientX - rect.left) * (canvas.width / rect.width);
+  touchPointer.y = (t.clientY - rect.top) * (canvas.height / rect.height);
+});
+canvas.addEventListener("touchend", (e) => { touchPointer.active = false; });
+
+// Also support mouse click-and-drag on canvas for movement
+let mouseDown = false;
+canvas.addEventListener("mousedown", (e) => {
+  mouseDown = true;
+  const rect = canvas.getBoundingClientRect();
+  touchPointer.active = true;
+  touchPointer.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  touchPointer.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+});
+window.addEventListener("mousemove", (e) => {
+  if (!mouseDown) return;
+  const rect = canvas.getBoundingClientRect();
+  touchPointer.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  touchPointer.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+});
+window.addEventListener("mouseup", () => { mouseDown = false; touchPointer.active = false; });
+
+// Action button
+const actionBtn = document.getElementById("action");
+let actionPressed = false;
+actionBtn.addEventListener("touchstart",(e)=>{ e.preventDefault(); actionPressed = true; });
+actionBtn.addEventListener("touchend",(e)=>{ e.preventDefault(); actionPressed = false; });
+actionBtn.addEventListener("mousedown",(e)=>{ e.preventDefault(); actionPressed = true; });
+actionBtn.addEventListener("mouseup",(e)=>{ e.preventDefault(); actionPressed = false; });
+
+// Game loop
+let last = performance.now();
+function loop(now){
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+
+  // compute input
+  let vx = 0, vy = 0;
+  if (stick.active) { vx = stick.x; vy = stick.y; }
+  else if (touchPointer.active) {
+    // move toward touch point relative to player position
+    const dx = touchPointer.x - game.player.x;
+    const dy = touchPointer.y - game.player.y;
+    const len = Math.hypot(dx,dy) || 1;
+    vx = dx/len; vy = dy/len;
+  }
+  else {
+    if (keys['w'] || keys['arrowup']) vy -= 1;
+    if (keys['s'] || keys['arrowdown']) vy += 1;
+    if (keys['a'] || keys['arrowleft']) vx -= 1;
+    if (keys['d'] || keys['arrowright']) vx += 1;
+  }
+  const action = actionPressed || keys[' '];
+
+  // Only update game world while running and playing to prevent impostor moving on menu
+  if (running && game.state === "playing") {
+    game.update(dt, vx, vy, action);
+  } else {
+    // allow quick restart by action while in win/lose state even if not "running"
+    if (game.state !== "playing" && action) {
+      game._reset();
+      // show menu to let player pick color again
+      menuEl.classList.remove("hidden");
+      running = false;
+    }
+  }
+
+  // Always render so overlays and menu presence stay visually consistent
+  game.render();
+
+  // If the game enters win/lose while running, show endPanel DOM overlay and stop running
+  if (game.state !== "playing" && running) {
+    running = false;
+    endTitle.textContent = game.state === "win" ? "All Tasks Done — You Win!" : "Sorry Your Done Bro";
+    endPanel.classList.remove("hidden");
+  }
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>
