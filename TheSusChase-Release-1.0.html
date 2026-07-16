@@ -1,0 +1,505 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>The Sus Chase</title>
+  <style>
+:root{
+  --bg:#0f1720;
+  --panel: rgba(255,255,255,0.06);
+  --accent:#e85d4b;
+  --accent-2:#4bd0e8;
+  --text:#e6eef6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%}
+body{
+  background: linear-gradient(180deg, #071018 0%, #0f1720 100%);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overflow:hidden;
+  touch-action:none;
+  position:relative;
+}
+canvas{display:block;width:100%;height:100%}
+
+/* HUD */
+#hud{
+  position:absolute;
+  left:12px;
+  top:12px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  pointer-events:none;
+}
+#info{
+  background:var(--panel);
+  padding:8px 12px;
+  border-radius:10px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  pointer-events:auto;
+}
+#status{ font-weight:600; color:var(--accent); }
+#timer{ font-variant-numeric: tabular-nums; color:var(--accent-2); }
+#controls-hint{
+  background:rgba(255,255,255,0.04);
+  padding:8px 10px;
+  border-radius:10px;
+  font-size:13px;
+  pointer-events:none;
+}
+
+/* joystick for mobile */
+#joystick{ position:absolute; left:14px; bottom:14px; width:120px; height:120px; touch-action:none; pointer-events:auto; }
+/* Mobile action button (A) */
+.mobile-action{
+  position:absolute; right:14px; bottom:18px; width:64px; height:64px; border-radius:50%; border:0;
+  background:var(--accent-2); color:#002; font-weight:800; font-size:20px; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 8px 22px rgba(0,0,0,0.4); touch-action:manipulation; pointer-events:auto; user-select:none;
+}
+@media (min-width:900px){ #joystick{display:none} .mobile-action{display:none} }
+
+/* Start/menu overlays */
+.menu-overlay{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(rgba(3,7,12,0.6), rgba(3,7,12,0.25)); pointer-events:auto; }
+.menu-panel{ width:320px; max-width:88%; background:var(--panel); border-radius:12px; padding:16px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.6); }
+.menu-panel h2{ margin:6px 0 12px; font-size:20px; color:var(--text); }
+.colors{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:8px 0; }
+.color-pill{ width:40px; height:40px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.35); border:2px solid rgba(255,255,255,0.04); cursor:pointer; }
+.color-pill.selected{ outline:3px solid rgba(255,255,255,0.06); transform:scale(1.06); }
+.primary{ margin-top:12px; padding:10px 14px; border-radius:8px; border:0; background:var(--accent-2); color:#002; font-weight:700; font-size:16px; }
+.menu-overlay.hidden{ display:none; }
+
+/* small helpers */
+.top-right-link{ position:absolute; right:10px; top:10px; font-size:12px; color:rgba(255,255,255,0.9); text-decoration:none; background:rgba(0,0,0,0.2); padding:6px 8px; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div id="info">
+      <div id="status">Alive</div>
+      <div id="timer">00:00</div>
+    </div>
+    <div id="controls-hint">WASD / Joystick</div>
+  </div>
+
+  <div id="menu" class="menu-overlay">
+    <div class="menu-panel">
+      <h2>Among-lite (Standalone)</h2>
+      <div class="colors" id="colors"></div>
+      <button id="startBtn" class="primary">Play</button>
+    </div>
+  </div>
+
+  <div id="deathPanel" class="menu-overlay" style="display:none;">
+    <div class="menu-panel">
+      <h2>You Died Lol</h2>
+      <div style="margin:8px 0 6px;color:rgba(255,255,255,0.75);font-size:13px;">Choose a color and try again</div>
+      <div class="colors" id="deathColors"></div>
+      <button id="playAgainBtn" class="primary" style="margin-top:10px;">Play Again</button>
+    </div>
+  </div>
+
+  <div id="winPanel" class="menu-overlay" style="display:none;">
+    <div class="menu-panel">
+      <h2>You Completed All Tasks — You Win! Lmao Try Again</h2>
+      <div style="margin:8px 0 6px;color:rgba(255,255,255,0.75);font-size:13px;">Nice job — choose a color and play again</div>
+      <div class="colors" id="winColors"></div>
+      <button id="winPlayAgainBtn" class="primary" style="margin-top:10px;">Play Again</button>
+    </div>
+  </div>
+
+  <div id="joystick"></div>
+  <button id="action" aria-label="Action" class="mobile-action">A</button>
+
+  <!-- audio assets (files included in repository root) -->
+  <audio id="menuMusic" src="https://nu.vgmtreasurechest.com/soundtracks/among-us/nzispxqm/01.%20Among%20Us%20Theme.mp3" preload="auto"></audio>
+  <audio id="gameMusic" src="among-us-trap-remix-among-drip-t.mp3" preload="auto"></audio>
+  <audio id="impostorWin" src="impostor-win.mp3" preload="auto"></audio>
+  <audio id="crewmateWin" src="yay_cRiHGGR.mp3" preload="auto"></audio>
+
+  <script type="module">
+/* Minimal standalone bundle: inlined core game (based on existing game.js logic) and nipplejs import for mobile joystick */
+import nipplejs from "https://esm.sh/nipplejs@0.9.0";
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d', { alpha: false });
+
+let DPR = Math.max(1, window.devicePixelRatio || 1);
+function resize(){
+  const w = innerWidth;
+  const h = innerHeight;
+  canvas.width = Math.floor(w * DPR);
+  canvas.height = Math.floor(h * DPR);
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+addEventListener('resize', resize, {passive:true});
+resize();
+
+const WORLD = { w: canvas.width / DPR, h: canvas.height / DPR };
+const CREW_RADIUS = 18;
+const IMPO_RADIUS = 22;
+const MAX_SPEED = 280;
+const IMPO_SPEED = 130;
+
+const crewmate = { x: WORLD.w*0.25, y: WORLD.h*0.5, vx:0, vy:0, color:'#4bd0e8' };
+const imposter = { x: WORLD.w*0.75, y: WORLD.h*0.5, vx:0, vy:0, color:'#e85d4b' };
+
+let last = performance.now();
+let running = false;
+let caught = false;
+let won = false;
+let elapsed = 0;
+
+const TASK_COUNT = 4;
+const TASK_NEED = 2.0;
+const tasks = generateTasks(TASK_COUNT);
+
+function generateTasks(n){
+  const out = [];
+  const margin = 48;
+  for(let i=0;i<n;i++){
+    const angle = (i / n) * Math.PI * 2 + (Math.random()-0.5)*0.3;
+    const radius = Math.min(WORLD.w, WORLD.h) * 0.35 + (Math.random()-0.5)*40;
+    const cx = WORLD.w/2 + Math.cos(angle)*radius;
+    const cy = WORLD.h/2 + Math.sin(angle)*radius;
+    out.push({ x: clamp(cx, margin, WORLD.w-margin), y: clamp(cy, margin, WORLD.h-margin), r: 12, done:false, progress:0, needs: TASK_NEED });
+  }
+  return out;
+}
+
+/* Menu wiring */
+(function setupMenu(){
+  const COLORS = ['#48b0ff','#00bcd4','#0f9d58','#ffb86b','#6ee7b7','#f472b6','#ffd166','#a78bfa'];
+  let selected = crewmate.color || COLORS[0];
+  let deathSelected = crewmate.color || COLORS[0];
+
+  const menu = document.getElementById('menu');
+  const colorsEl = document.getElementById('colors');
+  const startBtn = document.getElementById('startBtn');
+
+  const deathPanel = document.getElementById('deathPanel');
+  const deathColorsEl = document.getElementById('deathColors');
+  const playAgainBtn = document.getElementById('playAgainBtn');
+
+  const winColorsEl = document.getElementById('winColors');
+
+  const menuMusic = document.getElementById('menuMusic');
+  if(menuMusic){ menuMusic.loop = true; menuMusic.volume = 0.45; try{ menuMusic.play().catch(()=>{}); }catch(e){} }
+  const gameMusic = document.getElementById('gameMusic');
+  if(gameMusic){ gameMusic.loop = true; gameMusic.volume = 0.0; }
+  window.gameMusic = gameMusic;
+
+  for (const c of COLORS) {
+    const d = document.createElement('div');
+    d.className = 'color-pill' + (c===selected ? ' selected' : '');
+    d.style.background = c;
+    d.setAttribute('role','button');
+    d.addEventListener('click', () => {
+      selected = c;
+      for (const kid of colorsEl.children) kid.classList.remove('selected');
+      d.classList.add('selected');
+    });
+    colorsEl.appendChild(d);
+  }
+
+  for (const c of COLORS) {
+    const d = document.createElement('div');
+    d.className = 'color-pill' + (c===deathSelected ? ' selected' : '');
+    d.style.background = c;
+    d.setAttribute('role','button');
+    d.addEventListener('click', () => {
+      deathSelected = c;
+      for (const kid of deathColorsEl.children) kid.classList.remove('selected');
+      d.classList.add('selected');
+    });
+    deathColorsEl.appendChild(d);
+  }
+
+  for (const c of COLORS) {
+    const d = document.createElement('div');
+    d.className = 'color-pill';
+    d.style.background = c;
+    d.setAttribute('role','button');
+    d.addEventListener('click', () => {
+      // reset through win panel selection
+      if(window.__respawnWithColor){ window.__respawnWithColor(c); }
+    });
+    winColorsEl.appendChild(d);
+  }
+
+  function respawnWithColor(col){
+    crewmate.color = col;
+    crewmate.x = WORLD.w*0.2 + Math.random()*WORLD.w*0.2;
+    crewmate.y = WORLD.h*0.2 + Math.random()*WORLD.h*0.6;
+    crewmate.vx = crewmate.vy = 0;
+    imposter.x = WORLD.w*0.8 - Math.random()*WORLD.w*0.2;
+    imposter.y = WORLD.h*0.2 + Math.random()*WORLD.h*0.6;
+    imposter.vx = imposter.vy = 0;
+    caught = false;
+    elapsed = 0;
+    running = true;
+    document.getElementById('status').textContent = 'Alive';
+    document.getElementById('status').style.color = '#e85d4b';
+    if(deathPanel) deathPanel.style.display = 'none';
+    if(menuMusic && !menuMusic.paused){ try{ menuMusic.pause(); menuMusic.currentTime = 0; }catch(e){} }
+    if(gameMusic){ try{ gameMusic.volume = 0.15; gameMusic.currentTime = 0; gameMusic.play().catch(()=>{}); }catch(e){} }
+  }
+
+  startBtn.addEventListener('click', ()=>{
+    crewmate.color = selected;
+    menu.style.display = 'none';
+    running = true;
+    if(menuMusic && !menuMusic.paused){ try{ menuMusic.pause(); menuMusic.currentTime = 0; }catch(e){} }
+    if(gameMusic){ try{ gameMusic.volume = 0.15; gameMusic.currentTime = 0; gameMusic.play().catch(()=>{}); }catch(e){} }
+  });
+
+  playAgainBtn.addEventListener('click', ()=>{
+    respawnWithColor(deathSelected);
+    if(menu) menu.style.display = 'none';
+  });
+
+  window.__respawnWithColor = respawnWithColor;
+})();
+
+/* Input */
+const keys = { up:0, down:0, left:0, right:0, action:0 };
+window.addEventListener('keydown', e=>{
+  if(e.key === 'w' || e.key === 'ArrowUp') keys.up=1;
+  if(e.key === 's' || e.key === 'ArrowDown') keys.down=1;
+  if(e.key === 'a' || e.key === 'ArrowLeft') keys.left=1;
+  if(e.key === 'd' || e.key === 'ArrowRight') keys.right=1;
+  if(e.key === ' ') keys.action = 1;
+});
+window.addEventListener('keyup', e=>{
+  if(e.key === 'w' || e.key === 'ArrowUp') keys.up=0;
+  if(e.key === 's' || e.key === 'ArrowDown') keys.down=0;
+  if(e.key === 'a' || e.key === 'ArrowLeft') keys.left=0;
+  if(e.key === 'd' || e.key === 'ArrowRight') keys.right=0;
+  if(e.key === ' ') keys.action = 0;
+});
+
+/* Mobile joystick */
+let joy = { x:0,y:0 };
+const mobileActionBtn = document.getElementById('action');
+if(mobileActionBtn){
+  mobileActionBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); keys.action = 1; }, {passive:false});
+  mobileActionBtn.addEventListener('touchend',   (e)=>{ e.preventDefault(); keys.action = 0; }, {passive:false});
+  mobileActionBtn.addEventListener('pointerdown', (e)=>{ e.preventDefault(); keys.action = 1; });
+  mobileActionBtn.addEventListener('pointerup',   (e)=>{ e.preventDefault(); keys.action = 0; });
+  mobileActionBtn.addEventListener('pointercancel',(e)=>{ keys.action = 0; });
+}
+
+if(window.matchMedia && window.matchMedia('(max-width:899px)').matches){
+  const zone = document.getElementById('joystick');
+  const manager = nipplejs.create({ zone, mode:'static', position:{left:'60px', bottom:'60px'}, color:'#ffffff22', size:110 });
+  manager.on('move', (evt, data)=>{
+    if(!data || !data.vector) return;
+    joy.x = data.vector.x;
+    joy.y = -data.vector.y;
+  });
+  manager.on('end', ()=>{ joy.x=0; joy.y=0; });
+}
+
+/* Utilities */
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+/* Game update/draw */
+function update(dt){
+  if(caught || !running) return;
+  elapsed += dt;
+
+  let ix = (keys.right - keys.left) || 0;
+  let iy = (keys.down - keys.up) || 0;
+  if(Math.abs(joy.x) > 0.01 || Math.abs(joy.y) > 0.01){ ix = joy.x; iy = joy.y; }
+
+  let im = Math.hypot(ix, iy);
+  if(im > 1){ ix/=im; iy/=im; }
+
+  const ACC = 700;
+  crewmate.vx += ix * ACC * dt;
+  crewmate.vy += iy * ACC * dt;
+
+  const FRICTION = 120;
+  const speed = Math.hypot(crewmate.vx, crewmate.vy);
+  if (speed > 0) {
+    const hasInput = Math.abs(ix) > 0.001 || Math.abs(iy) > 0.001;
+    const dec = (hasInput ? FRICTION : FRICTION * 4) * dt;
+    const nsp = Math.max(0, speed - dec);
+    if (nsp < 10) { crewmate.vx = crewmate.vy = 0; }
+    else { crewmate.vx *= nsp / (speed || 1); crewmate.vy *= nsp / (speed || 1); }
+  }
+
+  const cspeed = Math.hypot(crewmate.vx, crewmate.vy);
+  if(cspeed > MAX_SPEED){ crewmate.vx = (crewmate.vx / cspeed) * MAX_SPEED; crewmate.vy = (crewmate.vy / cspeed) * MAX_SPEED; }
+
+  crewmate.x += crewmate.vx * dt;
+  crewmate.y += crewmate.vy * dt;
+
+  if(crewmate.x < -CREW_RADIUS) crewmate.x = WORLD.w + CREW_RADIUS;
+  if(crewmate.x > WORLD.w + CREW_RADIUS) crewmate.x = -CREW_RADIUS;
+  if(crewmate.y < -CREW_RADIUS) crewmate.y = WORLD.h + CREW_RADIUS;
+  if(crewmate.y > WORLD.h + CREW_RADIUS) crewmate.y = -CREW_RADIUS;
+
+  // task interaction
+  if(keys.action){
+    for(const t of tasks){
+      if(t.done) continue;
+      const dx = crewmate.x - t.x; const dy = crewmate.y - t.y; const d = Math.hypot(dx,dy);
+      if(d < CREW_RADIUS + t.r + 8){
+        t.progress = (t.progress || 0) + dt;
+        if(t.progress >= t.needs){ t.done = true; t.progress = t.needs; }
+        break;
+      }
+    }
+  } else {
+    for(const t of tasks){ if(!t.done && t.progress) t.progress = Math.max(0, t.progress - dt*1.2); }
+  }
+
+  const remaining = tasks.filter(t => !t.done).length;
+  if(!won && remaining === 0){
+    won = true; running = false;
+    try{ document.getElementById('status').textContent = 'Tasks Done'; document.getElementById('status').style.color = '#22c55e'; }catch(e){}
+    const wp = document.getElementById('winPanel'); if(wp) wp.style.display = 'flex';
+    if(window.gameMusic){ try{ window.gameMusic.pause(); window.gameMusic.currentTime = 0; }catch(e){} }
+    const crewmateWin = document.getElementById('crewmateWin'); if(crewmateWin){ try{ crewmateWin.currentTime = 0; crewmateWin.play().catch(()=>{}); }catch(e){} }
+  }
+
+  // imposter simple pursuit
+  const dx = crewmate.x - imposter.x; const dy = crewmate.y - imposter.y; const dist = Math.hypot(dx,dy);
+  let tx = 0, ty = 0;
+  if(dist > 0.5){ tx = dx / dist; ty = dy / dist; }
+  const targetSpeed = dist > 200 ? IMPO_SPEED * 1.25 : IMPO_SPEED;
+  const steerStrength = 8.0;
+  imposter.vx += (tx * targetSpeed - imposter.vx) * clamp(steerStrength * dt, 0, 1);
+  imposter.vy += (ty * targetSpeed - imposter.vy) * clamp(steerStrength * dt, 0, 1);
+  imposter.x += imposter.vx * dt; imposter.y += imposter.vy * dt;
+  if(imposter.x < -IMPO_RADIUS) imposter.x = WORLD.w + IMPO_RADIUS;
+  if(imposter.x > WORLD.w + IMPO_RADIUS) imposter.x = -IMPO_RADIUS;
+  if(imposter.y < -IMPO_RADIUS) imposter.y = WORLD.h + IMPO_RADIUS;
+  if(imposter.y > WORLD.h + IMPO_RADIUS) imposter.y = -IMPO_RADIUS;
+
+  if(dist < CREW_RADIUS + IMPO_RADIUS - 2){
+    caught = true;
+    document.getElementById('status').textContent = 'Caught';
+    document.getElementById('status').style.color = '#ffd166';
+    setTimeout(()=>{ running = false; }, 50);
+    const dp = document.getElementById('deathPanel'); if(dp){ dp.style.display = 'flex'; }
+    if(window.gameMusic){ try{ window.gameMusic.pause(); window.gameMusic.currentTime = 0; }catch(e){} }
+    const impostorWin = document.getElementById('impostorWin');
+    if(impostorWin){ try{ impostorWin.currentTime = 0; impostorWin.play().catch(()=>{}); }catch(e){} }
+  }
+}
+
+function draw(){
+  ctx.fillStyle = '#071218'; ctx.fillRect(0,0,WORLD.w,WORLD.h);
+  drawGrid();
+
+  for(const t of tasks){
+    ctx.beginPath(); ctx.fillStyle = t.done ? '#22c55e' : '#ffd166'; ctx.globalAlpha = t.done ? 0.9 : 0.95;
+    ctx.arc(t.x, t.y, t.r, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1;
+    if(!t.done && t.progress){
+      const pct = Math.min(1, t.progress / t.needs);
+      ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 3;
+      ctx.arc(t.x, t.y, t.r + 8, -Math.PI/2, -Math.PI/2 + Math.PI*2*pct); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText(`${Math.ceil((t.needs - t.progress)*10)/10}s`, t.x, t.y+4);
+    }
+  }
+
+  drawShadow(crewmate.x, crewmate.y, CREW_RADIUS);
+  drawCharacter(crewmate.x, crewmate.y, CREW_RADIUS, crewmate.color, false);
+
+  drawShadow(imposter.x, imposter.y, IMPO_RADIUS);
+  drawCharacter(imposter.x, imposter.y, IMPO_RADIUS, imposter.color, true);
+
+  const remaining = tasks.filter(t=>!t.done).length;
+  ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = "14px system-ui, sans-serif"; ctx.textAlign = "left";
+  ctx.fillText(`Tasks: ${remaining}`, 8, 20);
+  const mins = Math.floor(elapsed/60).toString().padStart(2,'0'); const secs = Math.floor(elapsed%60).toString().padStart(2,'0');
+  try{ document.getElementById('timer').textContent = `${mins}:${secs}`; }catch(e){}
+}
+
+function drawGrid(){
+  ctx.save(); ctx.globalAlpha = 0.06; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1;
+  const spacing = 48; const offset = (performance.now()/60) % spacing;
+  for(let x = -spacing; x < WORLD.w+spacing; x += spacing){ ctx.beginPath(); ctx.moveTo(x+offset, 0); ctx.lineTo(x+offset, WORLD.h); ctx.stroke(); }
+  for(let y = -spacing; y < WORLD.h+spacing; y += spacing){ ctx.beginPath(); ctx.moveTo(0, y+offset); ctx.lineTo(WORLD.w, y+offset); ctx.stroke(); }
+  ctx.restore();
+}
+
+function drawShadow(x,y,r){ ctx.save(); ctx.beginPath();
+  const g = ctx.createRadialGradient(x, y + r*0.6, r*0.2, x, y + r*0.6, r*1.6);
+  g.addColorStop(0, 'rgba(0,0,0,0.45)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g;
+  ctx.ellipse(x, y + r*0.6, r*1.1, r*0.5, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+}
+
+function drawCharacter(x,y,r,color,isImposter){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.fillStyle = color;
+  roundRect(ctx, -r*0.8, -r, r*1.6, r*1.6, r*0.4);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.beginPath();
+  const w = r*0.8, h = r*0.5, ox = r*0.15, oy = -r*0.1;
+  ctx.ellipse(ox, oy, w, h, 0, 0, Math.PI*2); ctx.fill();
+  if(isImposter){
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.beginPath();
+    ctx.moveTo(r*0.1, r*0.1); ctx.lineTo(r*0.25, r*0.05); ctx.lineTo(r*0.1, r*0.0); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+function frame(now){
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* Pointer respawn after caught */
+canvas.addEventListener('pointerdown', (e)=>{
+  if(!caught) return;
+  if(window.__respawnWithColor){
+    window.__respawnWithColor(crewmate.color || '#4bd0e8');
+    const dp = document.getElementById('deathPanel'); if(dp) dp.style.display = 'none';
+    return;
+  }
+  crewmate.x = WORLD.w*0.2 + Math.random()*WORLD.w*0.2; crewmate.y = WORLD.h*0.2 + Math.random()*WORLD.h*0.6;
+  crewmate.vx = crewmate.vy = 0; imposter.x = WORLD.w*0.8 - Math.random()*WORLD.w*0.2; imposter.y = WORLD.h*0.2 + Math.random()*WORLD.h*0.6;
+  imposter.vx = imposter.vy = 0; caught = false; elapsed = 0; running = true;
+  document.getElementById('status').textContent = 'Alive'; document.getElementById('status').style.color = '#e85d4b';
+});
+
+/* Wire win play again */
+(function wireWinPlayAgain(){
+  const btn = document.getElementById('winPlayAgainBtn');
+  if(!btn) return;
+  btn.addEventListener('click', ()=>{
+    const wp = document.getElementById('winPanel'); if(wp) wp.style.display = 'none';
+    won = false;
+    if(window.__respawnWithColor){ window.__respawnWithColor(crewmate.color || '#4bd0e8'); } else {
+      crewmate.x = WORLD.w*0.2 + Math.random()*WORLD.w*0.2; crewmate.y = WORLD.h*0.2 + Math.random()*WORLD.h*0.6;
+      crewmate.vx = crewmate.vy = 0; imposter.x = WORLD.w*0.8 - Math.random()*WORLD.w*0.2; imposter.y = WORLD.h*0.2 + Math.random()*WORLD.h*0.6;
+      imposter.vx = imposter.vy = 0; caught = false; elapsed = 0; running = true;
+      document.getElementById('status').textContent = 'Alive'; document.getElementById('status').style.color = '#e85d4b';
+    }
+  });
+})();
+  </script>
+</body>
+</html>
